@@ -22,6 +22,7 @@
 # 2018.01.02
 import os
 import os.path as osp
+import pkg_resources
 import random
 import sys
 
@@ -30,7 +31,8 @@ import torch
 
 
 def copy2cpu(tensor):
-    if isinstance(tensor, np.ndarray): return tensor
+    if isinstance(tensor, np.ndarray):
+        return tensor
     return tensor.detach().cpu().numpy()
 
 
@@ -50,22 +52,11 @@ def flatten_list(l):
     return [item for sublist in l for item in sublist]
 
 
-def get_support_data_dir(current_fname=__file__):
-    # print(current_fname)
-    support_data_dir = osp.abspath(current_fname)
-    support_data_dir_split = support_data_dir.split('/')
-    # print(support_data_dir_split)
-    try:
-        support_data_dir = '/'.join(support_data_dir_split[:support_data_dir_split.index('src')])
-    except:
-        for i in range(len(support_data_dir_split)-1, 0, -1):
-            support_data_dir = '/'.join(support_data_dir_split[:i])
-            # print(i, support_data_dir)
-            list_dir = os.listdir(support_data_dir)
-            # print('-- ',list_dir)
-            if 'support_data' in list_dir: break
+def get_support_data_dir(*args, **kwargs):
 
-    support_data_dir = osp.join(support_data_dir, 'support_data')
+    support_data_dir = osp.abspath(
+        pkg_resources.resource_filename('human_body_prior', 'support_data')
+    )
     assert osp.exists(support_data_dir)
     return support_data_dir
 
@@ -89,8 +80,10 @@ def id_generator(size=13):
 
 def logger_sequencer(logger_list, prefix=None):
     def post_text(text):
-        if prefix is not None: text = '{} -- '.format(prefix) + text
-        for logger_call in logger_list: logger_call(text)
+        if prefix is not None:
+            text = '{} -- '.format(prefix) + text
+        for logger_call in logger_list:
+            logger_call(text)
 
     return post_text
 
@@ -108,13 +101,16 @@ class log2file():
         self.write2file_only = write2file_only
 
     def __call__(self, text):
-        if text is None: return
-        if self.prefix != '': text = '{} -- '.format(self.prefix) + text
+        if text is None:
+            return
+        if self.prefix != '':
+            text = '{} -- '.format(self.prefix) + text
         # breakpoint()
         if self.auto_newline:
             if not text.endswith('\n'):
                 text = text + '\n'
-        if not self.write2file_only: sys.stderr.write(text)
+        if not self.write2file_only:
+            sys.stderr.write(text)
         if self.fhandle is not None:
             self.fhandle.write(text)
             self.fhandle.flush()
@@ -130,9 +126,11 @@ def makepath(*args, **kwargs):
     import os
     desired_path = os.path.join(*args)
     if isfile:
-        if not os.path.exists(os.path.dirname(desired_path)): os.makedirs(os.path.dirname(desired_path))
+        if not os.path.exists(os.path.dirname(desired_path)):
+            os.makedirs(os.path.dirname(desired_path))
     else:
-        if not os.path.exists(desired_path): os.makedirs(desired_path)
+        if not os.path.exists(desired_path):
+            os.makedirs(desired_path)
     return desired_path
 
 
@@ -151,7 +149,8 @@ def matrot2axisangle(matrots):
         for mIdx in range(N):
             cur_axisangle = []
             for jIdx in range(n_joints):
-                cur_axisangle.append(cv2.Rodrigues(matrots[mIdx, tIdx, jIdx:jIdx + 1, :].reshape(3, 3))[0].T)
+                cur_axisangle.append(cv2.Rodrigues(
+                    matrots[mIdx, tIdx, jIdx:jIdx + 1, :].reshape(3, 3))[0].T)
             T_axisangle.append(np.vstack(cur_axisangle)[np.newaxis])
         out_axisangle.append(np.vstack(T_axisangle).reshape([N, 1, -1, 3]))
     return np.concatenate(out_axisangle, axis=1)
